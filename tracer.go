@@ -1,17 +1,16 @@
-package geth_mamoru_core_sdk
+package mamoru
 
 import (
-	"context"
-	"github.com/Mamoru-Foundation/geth-mamoru-core-sdk/tracer"
+	"math/big"
+	"os"
+	"time"
+
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/evm_types"
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/mamoru_sniffer"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	"math/big"
-	"os"
-	"time"
 )
 
 var sniffer *mamoru_sniffer.Sniffer
@@ -21,59 +20,56 @@ func init() {
 		var err error
 		sniffer, err = mamoru_sniffer.Connect()
 		if err != nil {
-			panic(err)
+			log.Error("Mamoru Sniffer connect error:", err)
 		}
 	}
 }
 
-// Trace exported
-func Trace(ctx context.Context, tracerCfg *tracer.Config, block *types.Block, receipts types.Receipts) {
+type Tracer struct {
+	feeder  Feeder
+	builder mamoru_sniffer.BlockchainDataCtxBuilder
+}
+
+func NewTracer(feeder Feeder) *Tracer {
 	builder := mamoru_sniffer.NewBlockchainDataCtxBuilder()
-	snifferStart := time.Now()
-	defer finish(snifferStart, builder, block.Number(), block.Hash())
+	tr := &Tracer{builder: builder, feeder: feeder}
+	return tr
+}
 
-	callFrames, err := tracer.TraceBlock(ctx, tracerCfg, block)
-	if err != nil {
-		return
-	}
-	log.Info("Trace block", "elapsed", common.PrettyDuration(time.Since(snifferStart)))
-
-	feeder := tracer.NewFeed(tracerCfg.GetChainConfig())
-	blockData := feeder.FeedBlock(block)
-
-	builder.AddData(evm_types.NewBlockData([]evm_types.Block{
-		blockData,
+func (t *Tracer) FeedBlock(block *types.Block) {
+	t.builder.AddData(evm_types.NewBlockData([]evm_types.Block{
+		t.feeder.FeedBlock(block),
 	}))
+}
 
-	transactions := feeder.FeedTransactions(block, receipts)
-
-	builder.AddData(evm_types.NewTransactionData(
-		transactions,
-	))
-
-	callTraces := feeder.FeedCalTraces(callFrames, block.NumberU64())
-
-	builder.AddData(evm_types.NewCallTraceData(
-		callTraces,
-	))
-
-	events := feeder.FeedEvents(receipts)
-
-	builder.AddData(evm_types.NewEventData(
-		events,
+func (t *Tracer) FeedTransactions(block *types.Block, receipts types.Receipts) {
+	t.builder.AddData(evm_types.NewTransactionData(
+		t.feeder.FeedTransactions(block, receipts),
 	))
 }
 
-func finish(start time.Time, builder mamoru_sniffer.BlockchainDataCtxBuilder, blockNumber *big.Int, blockHash common.Hash) {
+func (t *Tracer) FeedEvents(receipts types.Receipts) {
+	t.builder.AddData(evm_types.NewEventData(
+		t.feeder.FeedEvents(receipts),
+	))
+}
+
+func (t *Tracer) FeedCalTraces(callFrames []*CallFrame, blockNumber uint64) {
+	t.builder.AddData(evm_types.NewCallTraceData(
+		t.feeder.FeedCallTraces(callFrames, blockNumber),
+	))
+}
+
+func (t *Tracer) Send(start time.Time, blockNumber *big.Int, blockHash common.Hash) {
 	if sniffer != nil {
-		sniffer.ObserveData(builder.Finish(blockNumber.String(), blockHash.String(), time.Now()))
+		sniffer.ObserveData(t.builder.Finish(blockNumber.String(), blockHash.String(), time.Now()))
 	}
 	logCtx := []interface{}{
 		"elapsed", common.PrettyDuration(time.Since(start)),
 		"number", blockNumber,
 		"hash", blockHash,
 	}
-	log.Info("Sniff block finish", logCtx...)
+	log.Info("Mamoru Sniffer finish", logCtx...)
 }
 
 func IsSnifferEnable() bool {

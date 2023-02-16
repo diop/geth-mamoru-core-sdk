@@ -1,9 +1,15 @@
-package tracer
+package call_tracer
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"runtime"
+	"sync"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -12,9 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum/eth/tracers"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/panjf2000/ants/v2"
-	"runtime"
-	"sync"
-	"time"
+
+	mamoru "github.com/Mamoru-Foundation/geth-mamoru-core-sdk"
 )
 
 type Config struct {
@@ -46,8 +51,8 @@ type txTraceTask struct {
 
 // TxTraceResult is the result of a single transaction trace.
 type TxTraceResult struct {
-	Result []*CallFrame `json:"result,omitempty"` // Trace results produced by the tracer
-	Error  string       `json:"error,omitempty"`  // Trace failure produced by the tracer
+	Result []*mamoru.CallFrame `json:"result,omitempty"` // Trace results produced by the tracer
+	Error  string              `json:"error,omitempty"`  // Trace failure produced by the tracer
 }
 
 func TraceBlock(ctx context.Context,
@@ -59,7 +64,7 @@ func TraceBlock(ctx context.Context,
 	}
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer  = types.MakeSigner(config.GetChainConfig(), block.Number())
+		signer  = types.MakeSigner(config.chainConfig, block.Number())
 		txs     = block.Transactions()
 		results = make([]*TxTraceResult, len(txs))
 		stateDB = config.stateDB
@@ -96,7 +101,7 @@ func TraceBlock(ctx context.Context,
 			}
 		})
 	}
-	// BSCFeed the transactions into the tracers and return
+	// EthFeed the transactions into the tracers and return
 	var failed error
 	blockCtx := core.NewEVMBlockContext(block.Header(), config.chainContext, nil)
 	for i, tx := range txs {
@@ -105,8 +110,16 @@ func TraceBlock(ctx context.Context,
 
 		// Generate the next state snapshot fast without tracing
 		msg, _ := tx.AsMessage(signer, block.BaseFee())
-
-		stateDB.Prepare(tx.Hash(), i)
+		if posa, ok := config.engin.(PoSA); ok {
+			if isSystem, _ := posa.IsSystemTransaction(tx, block.Header()); isSystem {
+				balance := stateDB.GetBalance(SystemAddress)
+				if balance.Cmp(common.Big0) > 0 {
+					stateDB.SetBalance(SystemAddress, big.NewInt(0))
+					stateDB.AddBalance(block.Header().Coinbase, balance)
+				}
+			}
+		}
+		stateDB.SetTxContext(tx.Hash(), i)
 		vmenv := vm.NewEVM(blockCtx, core.NewEVMTxContext(msg), stateDB, config.chainConfig, vm.Config{})
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas())); err != nil {
 			failed = err
@@ -135,14 +148,14 @@ func traceTx(ctx context.Context,
 	txctx *tracers.Context,
 	vmctx vm.BlockContext,
 	statedb *state.StateDB,
-	engine consensus.Engine) ([]*CallFrame, error) {
+	engine consensus.Engine) ([]*mamoru.CallFrame, error) {
 	var (
 		err       error
 		timeout   = 15 * time.Second
 		txContext = core.NewEVMTxContext(message)
 	)
 	// Creating CallTracer
-	tracer, err := NewCallTracer(true)
+	tracer, err := mamoru.NewCallTracer(true)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +172,17 @@ func traceTx(ctx context.Context,
 	// Run the transaction with tracing enabled.
 	vmenv := vm.NewEVM(vmctx, txContext, statedb, chainConfig, vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
 
+	if posa, ok := engine.(PoSA); ok && message.From() == vmctx.Coinbase &&
+		posa.IsSystemContract(message.To()) && message.GasPrice().Cmp(big.NewInt(0)) == 0 {
+		balance := statedb.GetBalance(SystemAddress)
+		if balance.Cmp(common.Big0) > 0 {
+			statedb.SetBalance(SystemAddress, big.NewInt(0))
+			statedb.AddBalance(vmctx.Coinbase, balance)
+		}
+	}
+
 	// Call Prepare to clear out the statedb access list
-	statedb.Prepare(txctx.TxHash, txctx.TxIndex)
+	statedb.SetTxContext(txctx.TxHash, txctx.TxIndex)
 	if _, err = core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas())); err != nil {
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
