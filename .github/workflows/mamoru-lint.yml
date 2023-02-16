@@ -1,0 +1,53 @@
+name: Lint
+
+on:
+  push:
+    branches: 
+      - main
+      - develop
+
+  pull_request:
+    branches: 
+      - main
+      - develop
+
+jobs:
+  golang-lint:
+    strategy:
+      matrix:
+        go-version: [1.19.x]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+        
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - uses: actions/cache@v3
+      with:
+        # In order:
+        # * Module download cache
+        # * Build cache (Linux)
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - run: |
+        go mod download
+
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: v1.50
+        working-directory: ./
+        skip-pkg-cache: true
+        skip-cache: true
+        skip-build-cache: true
+        args: --timeout=99m
