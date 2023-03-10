@@ -3,7 +3,7 @@ module github.com/Mamoru-Foundation/geth-mamoru-core-sdk
 go 1.19
 
 require (
-	github.com/Mamoru-Foundation/mamoru-sniffer-go v0.1.4
+	github.com/Mamoru-Foundation/mamoru-sniffer-go v0.2.1
 	github.com/ethereum/go-ethereum v1.11.3
 	github.com/panjf2000/ants/v2 v2.7.1
 )

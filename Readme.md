@@ -158,3 +158,7 @@ Run the following command to check if it works
 ```
 
 It's really easy, enjoy
+
+#### Current version Ethereum client:
+
+go-ethereum@v1.11.3
