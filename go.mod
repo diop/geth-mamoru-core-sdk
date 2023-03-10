@@ -3,8 +3,8 @@ module github.com/Mamoru-Foundation/geth-mamoru-core-sdk
 go 1.19
 
 require (
-	github.com/Mamoru-Foundation/mamoru-sniffer-go v0.1.3
-	github.com/ethereum/go-ethereum v1.11.0
+	github.com/Mamoru-Foundation/mamoru-sniffer-go v0.1.4
+	github.com/ethereum/go-ethereum v1.11.3
 	github.com/panjf2000/ants/v2 v2.7.1
 )
 
@@ -28,6 +28,7 @@ require (
 	github.com/getsentry/sentry-go v0.18.0 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
+	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -49,7 +50,6 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
-	github.com/prometheus/tsdb v0.7.1 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
 	github.com/status-im/keycard-go v0.2.0 // indirect
