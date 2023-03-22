@@ -134,6 +134,31 @@ Insert the main tracer code at the end of the function `func (bc *BlockChain) wr
 }
 ```
 
+
+### For Txpool and full/snap mode  (--syncmode full|snap)
+
+Add the following to import statements in the file `go-ethereum/eth/backend.go`
+
+```go
+import (
+    mamoru "github.com/Mamoru-Foundation/geth-mamoru-core-sdk"
+    "github.com/Mamoru-Foundation/geth-mamoru-core-sdk/mempool"
+)
+```
+
+Insert the main tracer code in function 'func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error)'
+
+```go
+        ...
+        eth.txPool = txpool.NewTxPool(config.TxPool, eth.blockchain.Config(), eth.blockchain)
+	////////////////////////////////////////////////////////
+	tracer := mamoru.NewTracer(mamoru.NewFeed(eth.blockchain.Config()))
+	sniffer := mempool.NewSniffer(context.Background(), eth.txPool, eth.blockchain, eth.blockchain.Config(), tracer)
+
+	go sniffer.SnifferLoop()
+	////////////////////////////////////////////////////////
+```
+
 ### Build the project:
 
 ```shell
