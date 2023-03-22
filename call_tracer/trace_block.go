@@ -86,7 +86,8 @@ func TraceBlock(ctx context.Context,
 			defer pend.Done()
 			// Fetch and execute the next transaction trace tasks
 			for task := range jobs {
-				msg, _ := txs[task.index].AsMessage(signer, block.BaseFee())
+				msg, _ := core.TransactionToMessage(txs[task.index], signer, block.BaseFee())
+
 				txctx := &tracers.Context{
 					BlockHash: blockHash,
 					TxIndex:   task.index,
@@ -109,7 +110,7 @@ func TraceBlock(ctx context.Context,
 		jobs <- &txTraceTask{statedb: stateDB.Copy(), index: i}
 
 		// Generate the next state snapshot fast without tracing
-		msg, _ := tx.AsMessage(signer, block.BaseFee())
+		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())
 		if posa, ok := config.engin.(PoSA); ok {
 			if isSystem, _ := posa.IsSystemTransaction(tx, block.Header()); isSystem {
 				balance := stateDB.GetBalance(SystemAddress)
@@ -121,7 +122,7 @@ func TraceBlock(ctx context.Context,
 		}
 		stateDB.SetTxContext(tx.Hash(), i)
 		vmenv := vm.NewEVM(blockCtx, core.NewEVMTxContext(msg), stateDB, config.chainConfig, vm.Config{})
-		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas())); err != nil {
+		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.GasLimit)); err != nil {
 			failed = err
 			break
 		}
@@ -144,7 +145,7 @@ func TraceBlock(ctx context.Context,
 // be tracer dependent.
 func traceTx(ctx context.Context,
 	chainConfig *params.ChainConfig,
-	message core.Message,
+	message *core.Message,
 	txctx *tracers.Context,
 	vmctx vm.BlockContext,
 	statedb *state.StateDB,
@@ -172,8 +173,8 @@ func traceTx(ctx context.Context,
 	// Run the transaction with tracing enabled.
 	vmenv := vm.NewEVM(vmctx, txContext, statedb, chainConfig, vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
 
-	if posa, ok := engine.(PoSA); ok && message.From() == vmctx.Coinbase &&
-		posa.IsSystemContract(message.To()) && message.GasPrice().Cmp(big.NewInt(0)) == 0 {
+	if posa, ok := engine.(PoSA); ok && message.From == vmctx.Coinbase &&
+		posa.IsSystemContract(message.To) && message.GasPrice.Cmp(big.NewInt(0)) == 0 {
 		balance := statedb.GetBalance(SystemAddress)
 		if balance.Cmp(common.Big0) > 0 {
 			statedb.SetBalance(SystemAddress, big.NewInt(0))
@@ -183,7 +184,7 @@ func traceTx(ctx context.Context,
 
 	// Call Prepare to clear out the statedb access list
 	statedb.SetTxContext(txctx.TxHash, txctx.TxIndex)
-	if _, err = core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas())); err != nil {
+	if _, err = core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.GasLimit)); err != nil {
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
 
