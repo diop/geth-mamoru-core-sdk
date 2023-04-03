@@ -21,11 +21,12 @@ import (
 ```
     
 Then, paste the following code into the Ethereum light client file `go-ethereum/light/lightchain.go`:
+Insert this code to end of function `InsertHeaderChain(chain []*types.Header, checkFreq int) (int, error)`
 
 ```go
-	////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
     if !mamoru.IsSnifferEnable() || !mamoru.Connect() {
-		return 0, nil
+        return 0, nil
     }
     ctx := context.Background()
     
@@ -46,25 +47,25 @@ Then, paste the following code into the Ethereum light client file `go-ethereum/
     }
     
     startTime := time.Now()
-    log.Info("Mamoru Sniffer start", "number", block.NumberU64())
-    tracer := mamoru.NewTracer(mamoru.NewFeed(lc.Config()))
+    log.Info("Mamoru Eth Sniffer start", "number", block.NumberU64(), "ctx", mamoru.CtxLightchain)
     
+    tracer := mamoru.NewTracer(mamoru.NewFeed(lc.Config()))
     tracer.FeedBlock(block)
-    tracer.FeedTransactions(block, receipts)
+    tracer.FeedTransactions(block.Number(), block.Transactions(), receipts)
     tracer.FeedEvents(receipts)
     
     //Launch EVM and Collect Call Trace data
-    callFrames, err := call_tracer.TraceBlock(ctx, call_tracer.NewTracerConfig(stateDb.Copy(), lc.Config(), lc), lastBlock)
+    txTrace, err := call_tracer.TraceBlock(ctx, call_tracer.NewTracerConfig(stateDb.Copy(), lc.Config(), lc), lastBlock)
     if err != nil {
-        log.Error("Mamoru Sniffer Tracer Error", "err", err)
+    log.Error("Mamoru Eth Sniffer Error", "err", err, "ctx", mamoru.CtxLightchain)
         return 0, err
     }
-    for _, call := range callFrames {
-        result := call.Result
-        tracer.FeedCalTraces(result, block.NumberU64())
+    for _, call := range txTrace {
+        callFrames := call.Result
+        tracer.FeedCalTraces(callFrames, block.NumberU64())
     }
     
-    tracer.Send(startTime, block.Number(), block.Hash())
+    tracer.Send(startTime, block.Number(), block.Hash(), mamoru.CtxLightchain)
 ////////////////////////////////////////////////////////////////////////////
 ```
 
@@ -92,12 +93,15 @@ Enable debug mode and insert tracer instance to function `func NewBlockChain()`
     
     var err error
 //////////////////////////////////////////////////////////////
-    tracer, err := mamoru.NewCallTracer(true)
-    if err != nil {
-        return nil, err
+// Enable Debug mod and Set Tracer
+    if !mamoru.IsSnifferEnable() || !mamoru.Connect()  {
+        tracer, err := mamoru.NewCallTracer(false)
+        if err != nil {
+            return nil, err
+        }
+        bc.vmConfig.Tracer = tracer
+        bc.vmConfig.Debug = true
     }
-    bc.vmConfig.Tracer = tracer
-    bc.vmConfig.Debug = true
 //////////////////////////////////////////////////////////////
 ...
 ```
@@ -106,30 +110,27 @@ Insert the main tracer code at the end of the function `func (bc *BlockChain) wr
 
 ```go
     ...
-	////////////////////////////////////////////////////////////
-	if !mamoru.IsSnifferEnable() || !mamoru.Connect() {
-		return 0, nil
-	}
-
-	startTime := time.Now()
-	log.Info("Mamoru Sniffer start", "number", block.NumberU64())
-	tracer := mamoru.NewTracer(mamoru.NewFeed(bc.chainConfig))
-
-	tracer.FeedBlock(block)
-	tracer.FeedTransactions(block, receipts)
-	tracer.FeedEvents(receipts)
-	// Collect Call Trace data  from EVM
-	if callTracer, ok := bc.GetVMConfig().Tracer.(*mamoru.CallTracer); ok {
-		result, err := callTracer.GetResult()
-		if err != nil {
-			log.Error("Mamoru Sniffer Tracer Error", "err", err)
-			return 0, err
-		}
-		tracer.FeedCalTraces(result, block.NumberU64())
-	}
-	tracer.Send(startTime, block.Number(), block.Hash())
-
-	////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+    if !mamoru.IsSnifferEnable() || !mamoru.Connect() {
+        return 0, nil
+    }
+    startTime := time.Now()
+    log.Info("Mamoru Sniffer start", "number", block.NumberU64(), "ctx", mamoru.CtxBlockchain)
+    tracer := mamoru.NewTracer(mamoru.NewFeed(bc.chainConfig))
+    tracer.FeedBlock(block)
+    tracer.FeedTransactions(block.Number(), block.Transactions(), receipts)
+    tracer.FeedEvents(receipts)
+    // Collect Call Trace data  from EVM
+    if callTracer, ok := bc.GetVMConfig().Tracer.(*mamoru.CallTracer); ok {
+        callFrames, err := callTracer.GetResult()
+        if err != nil {
+            log.Error("Mamoru Sniffer Tracer Error", "err", err, "ctx", mamoru.CtxBlockchain)
+            return 0, err
+        }
+        tracer.FeedCalTraces(callFrames, block.NumberU64())
+    }
+    tracer.Send(startTime, block.Number(), block.Hash(), mamoru.CtxBlockchain)
+////////////////////////////////////////////////////////////
 	return status, nil
 }
 ```
@@ -146,16 +147,15 @@ import (
 )
 ```
 
-Insert the main tracer code in function 'func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error)'
+Insert the main tracer code in function `func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error)`
 
 ```go
-        ...
-        eth.txPool = txpool.NewTxPool(config.TxPool, eth.blockchain.Config(), eth.blockchain)
+    ...
+    eth.txPool = txpool.NewTxPool(config.TxPool, eth.blockchain.Config(), eth.blockchain)
 	////////////////////////////////////////////////////////
-	tracer := mamoru.NewTracer(mamoru.NewFeed(eth.blockchain.Config()))
-	sniffer := mempool.NewSniffer(context.Background(), eth.txPool, eth.blockchain, eth.blockchain.Config(), tracer)
-
-	go sniffer.SnifferLoop()
+    // Attach txpool sniffer
+    sniffer := mempool.NewSniffer(context.Background(), eth.txPool, eth.blockchain, eth.blockchain.Config(), mamoru.NewFeed(eth.blockchain.Config()))
+    go sniffer.SnifferLoop()
 	////////////////////////////////////////////////////////
 ```
 
@@ -179,11 +179,11 @@ export MAMORU_ENDPOINT="https://validation-chain-url"
 Run the following command to check if it works
 
 ```shell
- ./build/bin/geth --syncmode light --goerli
+ geth --syncmode light --goerli
 ```
 
 It's really easy, enjoy
 
 #### Current version Ethereum client:
 
-go-ethereum@v1.11.3
+go-ethereum@v1.11.5

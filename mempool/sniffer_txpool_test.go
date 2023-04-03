@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	mamoru "github.com/Mamoru-Foundation/geth-mamoru-core-sdk"
 	"math/big"
 	"os"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	mamoru "github.com/Mamoru-Foundation/geth-mamoru-core-sdk"
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/evm_types"
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/mamoru_sniffer"
 	"github.com/ethereum/go-ethereum/common"
@@ -53,11 +53,12 @@ func init() {
 }
 
 type testBlockChain struct {
-	gasLimit       uint64 // must be first field for 64 bit alignment (atomic access)
-	statedb        *state.StateDB
-	chainHeadFeed  *event.Feed
-	chainEventFeed *event.Feed
-	engine         consensus.Engine
+	gasLimit           uint64 // must be first field for 64 bit alignment (atomic access)
+	statedb            *state.StateDB
+	chainHeadFeed      *event.Feed
+	chainEventFeed     *event.Feed
+	chainSideEventFeed *event.Feed
+	engine             consensus.Engine
 }
 
 func (bc *testBlockChain) GetHeader(common.Hash, uint64) *types.Header {
@@ -74,7 +75,7 @@ func (bc *testBlockChain) SubscribeChainEvent(ch chan<- core.ChainEvent) event.S
 
 func (bc *testBlockChain) CurrentBlock() *types.Header {
 	return &types.Header{
-		Number:   new(big.Int),
+		Number:   big.NewInt(1),
 		GasLimit: atomic.LoadUint64(&bc.gasLimit),
 	}
 }
@@ -89,6 +90,10 @@ func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
 
 func (bc *testBlockChain) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	return bc.chainHeadFeed.Subscribe(ch)
+}
+
+func (bc *testBlockChain) SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) event.Subscription {
+	return bc.chainSideEventFeed.Subscribe(ch)
 }
 
 func (bc *testBlockChain) Engine() consensus.Engine {
@@ -187,7 +192,7 @@ func TestMempoolSniffer(t *testing.T) {
 
 	statedb.SetBalance(address, new(big.Int).SetUint64(params.Ether))
 
-	bChain := &testBlockChain{gasLimit: 100000, statedb: statedb, chainHeadFeed: new(event.Feed), chainEventFeed: new(event.Feed), engine: engine}
+	bChain := &testBlockChain{gasLimit: 100000, statedb: statedb, chainHeadFeed: new(event.Feed), chainEventFeed: new(event.Feed), chainSideEventFeed: new(event.Feed), engine: engine}
 	db := rawdb.NewMemoryDatabase()
 	chainConfig := params.TestChainConfig
 
@@ -217,7 +222,7 @@ func TestMempoolSniffer(t *testing.T) {
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	feeder := &testFeeder{}
-	memSniffer := NewSniffer(ctx, pool, bChain, params.TestChainConfig, mamoru.NewTracer(feeder))
+	memSniffer := NewSniffer(ctx, pool, bChain, params.TestChainConfig, feeder)
 
 	newTxsEvent := make(chan core.NewTxsEvent, 10)
 	sub := memSniffer.txPool.SubscribeNewTxsEvent(newTxsEvent)
@@ -250,8 +255,8 @@ func TestMempoolSniffer(t *testing.T) {
 	assert.Equal(t, txsPending.Len(), len(feeder.CallFrames()), "CallFrames len must be equal")
 
 	for _, r := range feeder.Receipts() {
-		assert.Equal(t, blocks[len(blocks)-1].Number(), r.BlockNumber, "block number must be equals")
-		assert.Equal(t, blocks[len(blocks)-1].Hash(), r.BlockHash, "block number must be equals")
+		assert.Equal(t, big.NewInt(0), r.BlockNumber, "block number must be equals")
+		assert.Equal(t, common.Hash{}, r.BlockHash, "block number must be equals")
 	}
 	for _, call := range feeder.CallFrames() {
 		assert.Empty(t, call.Error, "error must be empty")
