@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
 	"math/big"
 	"os"
 	"strings"
@@ -171,6 +172,13 @@ func pricedTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key *ec
 	return tx
 }
 
+type statusProgressMock struct {
+}
+
+func (s *statusProgressMock) Progress() ethereum.SyncProgress {
+	return ethereum.SyncProgress{CurrentBlock: 2, HighestBlock: 2}
+}
+
 func TestMempoolSniffer(t *testing.T) {
 	_ = os.Setenv("MAMORU_SNIFFER_ENABLE", "true")
 
@@ -223,6 +231,8 @@ func TestMempoolSniffer(t *testing.T) {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	feeder := &testFeeder{}
 	memSniffer := NewSniffer(ctx, pool, bChain, params.TestChainConfig, feeder)
+
+	memSniffer.sniffer.SetDownloader(&statusProgressMock{})
 
 	newTxsEvent := make(chan core.NewTxsEvent, 10)
 	sub := memSniffer.txPool.SubscribeNewTxsEvent(newTxsEvent)

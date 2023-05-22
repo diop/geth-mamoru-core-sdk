@@ -96,7 +96,7 @@ func (bc *LightSnifferBackend) SnifferLoop() {
 }
 
 func (bc *LightSnifferBackend) processHead(ctx context.Context, head *types.Header) {
-	if bc.sniffer != nil || !bc.sniffer.IsSnifferEnable() || !bc.sniffer.Connect() || ctx.Err() != nil {
+	if ctx.Err() != nil || !bc.sniffer.CheckRequirements() {
 		return
 	}
 

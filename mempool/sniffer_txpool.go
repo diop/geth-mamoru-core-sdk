@@ -132,7 +132,7 @@ func (bc *SnifferBackend) SnifferLoop() {
 }
 
 func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs types.Transactions) {
-	if bc.sniffer == nil || !bc.sniffer.IsSnifferEnable() || !bc.sniffer.Connect() || ctx.Err() != nil {
+	if ctx.Err() != nil || !bc.sniffer.CheckRequirements() {
 		return
 	}
 
