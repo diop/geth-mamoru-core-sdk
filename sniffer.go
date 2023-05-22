@@ -57,11 +57,10 @@ func (s *Sniffer) checkSynced() bool {
 	}
 
 	if progress.CurrentBlock > 0 && progress.HighestBlock > 0 {
-		log.Info("Mamoru Sniffer sync", "current", progress.CurrentBlock)
 		if int64(progress.HighestBlock)-int64(progress.CurrentBlock) <= 0 {
 			s.synced = true
 		}
-		return true
+		return s.synced
 	}
 
 	return false

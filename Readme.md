@@ -18,16 +18,36 @@ import (
     mamoru "github.com/Mamoru-Foundation/geth-mamoru-core-sdk"
     "github.com/Mamoru-Foundation/geth-mamoru-core-sdk/call_tracer"
 )
+``` 
+Add field Sniffer *mamoru.Sniffer  to  LightChain type in the file `go-ethereum/light/lightchain.go`:
+
+```go
+type LightChain struct {
+    ...
+    Sniffer *mamoru.Sniffer
+}
 ```
-    
+and set them in the function `func NewLightChain(...) (*LightChain, error)`
+
+```go
+    ...
+    lc := &LightChain{
+        ...
+        Sniffer: mamoru.NewSniffer(), // Add this line
+    }
+    ...
+```
+
+
 Then, paste the following code into the Ethereum light client file `go-ethereum/light/lightchain.go`:
 Insert this code to end of function `InsertHeaderChain(chain []*types.Header, checkFreq int) (int, error)`
 
 ```go
-////////////////////////////////////////////////////////////////////////////
-    if !mamoru.IsSnifferEnable() || !mamoru.Connect() {
+	//////////////////////////////////////////////////////////////////
+    if !lc.Sniffer.CheckRequirements() {
         return 0, nil
     }
+    
     ctx := context.Background()
     
     lastBlock, err := lc.GetBlockByNumber(ctx, block.NumberU64())
@@ -57,7 +77,7 @@ Insert this code to end of function `InsertHeaderChain(chain []*types.Header, ch
     //Launch EVM and Collect Call Trace data
     txTrace, err := call_tracer.TraceBlock(ctx, call_tracer.NewTracerConfig(stateDb.Copy(), lc.Config(), lc), lastBlock)
     if err != nil {
-    log.Error("Mamoru Eth Sniffer Error", "err", err, "ctx", mamoru.CtxLightchain)
+        log.Error("Mamoru Eth Sniffer Error", "err", err, "ctx", mamoru.CtxLightchain)
         return 0, err
     }
     for _, call := range txTrace {
@@ -66,7 +86,17 @@ Insert this code to end of function `InsertHeaderChain(chain []*types.Header, ch
     }
     
     tracer.Send(startTime, block.Number(), block.Hash(), mamoru.CtxLightchain)
-////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
+```
+
+Add the following after creating handler `leth.handler = newClientHandler(config.UltraLightServers, config.UltraLightFraction, checkpoint, leth)`  in the file `eth/les/client.go`
+
+
+```go
+////////////////////////////////////////////////////////
+    // Attach Downloader to sniffer
+    leth.blockchain.Sniffer.SetDownloader(leth.handler.downloader)
+////////////////////////////////////////////////////////
 ```
 
 ### For full/snap mode  (--syncmode full|snap)
@@ -78,23 +108,33 @@ import (
     mamoru "github.com/Mamoru-Foundation/geth-mamoru-core-sdk"
 )
 ```
+Add field `Sniffer *mamoru.Sniffer`  to  `BlockChain` type in the file `go-ethereum/core/blockchain.go`:
+
+```go
+type BlockChain struct {
+    ...
+    Sniffer *mamoru.Sniffer
+}
+```
+
+and set them in the function `func NewBlockChain(...) (*BlockChain, error)`
+
+```go
+    ...
+    bc := &BlockChain{
+        ...
+        Sniffer: mamoru.NewSniffer(), // Add this line
+    }
+    ...
+```
 
 Enable debug mode and insert tracer instance to function `func NewBlockChain()`
 
 ```go
-    ...
-        diffPeersToDiffHashes: make(map[string]map[common.Hash]struct{}),
-    }
-    
-    bc.prefetcher = NewStatePrefetcher(chainConfig, bc, engine)
-    bc.forker = NewForkChoice(bc, shouldPreserve)
-    bc.validator = NewBlockValidator(chainConfig, bc, engine)
-    bc.processor = NewStateProcessor(chainConfig, bc, engine)
-    
     var err error
 //////////////////////////////////////////////////////////////
-// Enable Debug mod and Set Tracer
-    if !mamoru.IsSnifferEnable() || !mamoru.Connect()  {
+    // Enable Debug mod and Set Mamoru Tracer
+    if bc.Sniffer.CheckRequirements() {
         tracer, err := mamoru.NewCallTracer(false)
         if err != nil {
             return nil, err
@@ -103,7 +143,7 @@ Enable debug mode and insert tracer instance to function `func NewBlockChain()`
         bc.vmConfig.Debug = true
     }
 //////////////////////////////////////////////////////////////
-...
+    bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.insertStopped)
 ```
 
 Insert the main tracer code at the end of the function `func (bc *BlockChain) writeBlockAndSetHead()`
@@ -135,6 +175,15 @@ Insert the main tracer code at the end of the function `func (bc *BlockChain) wr
 }
 ```
 
+Add the following after condition `if eth.handler, err = newHandler(&handlerConfig{...`  in the file `eth/backend.go`
+
+```go
+////////////////////////////////////////////////////////
+    // Attach downloader to sniffer
+    eth.blockchain.Sniffer.SetDownloader(eth.handler.downloader)
+////////////////////////////////////////////////////////
+```
+
 
 ### For Txpool and full/snap mode  (--syncmode full|snap)
 
@@ -152,12 +201,26 @@ Insert the main tracer code in function `func New(stack *node.Node, config *ethc
 ```go
     ...
     eth.txPool = txpool.NewTxPool(config.TxPool, eth.blockchain.Config(), eth.blockchain)
-	////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
     // Attach txpool sniffer
-    sniffer := mempool.NewSniffer(context.Background(), eth.txPool, eth.blockchain, eth.blockchain.Config(), mamoru.NewFeed(eth.blockchain.Config()))
+    sniffer := mempool.NewSniffer(context.Background(), eth.txPool, eth.blockchain, eth.blockchain.Config(),
+    mamoru.NewFeed(eth.blockchain.Config()))
     go sniffer.SnifferLoop()
-	////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
 ```
+
+### For Txpool and light mode  (--syncmode light)
+
+Add the following in the file `go-ethereum/les/client.go`
+
+```go
+	leth.txPool = light.NewTxPool(leth.chainConfig, leth.blockchain, leth.relay)
+////////////////////////////////////////////////////////
+	// Attach LightTxpool sniffer
+	mempool.NewLightSniffer(context.Background(), leth.txPool, leth.blockchain, chainConfig)
+////////////////////////////////////////////////////////
+```
+
 
 ### Build the project:
 
