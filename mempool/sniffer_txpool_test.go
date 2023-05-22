@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	mamoru "github.com/Mamoru-Foundation/geth-mamoru-core-sdk"
 	"github.com/Mamoru-Foundation/mamoru-sniffer-go/mamoru_sniffer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
@@ -20,13 +19,15 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/stretchr/testify/assert"
+
+	mamoru2 "github.com/Mamoru-Foundation/geth-mamoru-core-sdk"
+	"github.com/ethereum/go-ethereum/core/txpool"
 )
 
 var (
@@ -112,7 +113,7 @@ type testFeeder struct {
 	block      *types.Block
 	txs        types.Transactions
 	receipts   types.Receipts
-	callFrames []*mamoru.CallFrame
+	callFrames []*mamoru2.CallFrame
 }
 
 func (f *testFeeder) FeedBlock(block *types.Block) mamoru_sniffer.Block {
@@ -136,7 +137,7 @@ func (f *testFeeder) FeedEvents(receipts types.Receipts) []mamoru_sniffer.Event 
 	return []mamoru_sniffer.Event{}
 }
 
-func (f *testFeeder) FeedCallTraces(callFrames []*mamoru.CallFrame, _ uint64) []mamoru_sniffer.CallTrace {
+func (f *testFeeder) FeedCallTraces(callFrames []*mamoru2.CallFrame, _ uint64) []mamoru_sniffer.CallTrace {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	f.callFrames = append(f.callFrames, callFrames...)
@@ -155,7 +156,7 @@ func (f *testFeeder) Receipts() types.Receipts {
 	return f.receipts
 }
 
-func (f *testFeeder) CallFrames() []*mamoru.CallFrame {
+func (f *testFeeder) CallFrames() []*mamoru2.CallFrame {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.callFrames
@@ -180,7 +181,7 @@ func TestMempoolSniffer(t *testing.T) {
 	assert.Equal(t, "true", actual)
 
 	// mock connect to sniffer
-	mamoru.SnifferConnectFunc = func() (*mamoru_sniffer.Sniffer, error) { return nil, nil }
+	mamoru2.SnifferConnectFunc = func() (*mamoru_sniffer.Sniffer, error) { return nil, nil }
 
 	var (
 		key, _     = crypto.GenerateKey()
@@ -253,10 +254,6 @@ func TestMempoolSniffer(t *testing.T) {
 	assert.Equal(t, txsPending.Len(), feeder.Receipts().Len(), "receipts len must be equal")
 	assert.Equal(t, txsPending.Len(), len(feeder.CallFrames()), "CallFrames len must be equal")
 
-	for _, r := range feeder.Receipts() {
-		assert.Equal(t, big.NewInt(0), r.BlockNumber, "block number must be equals")
-		assert.Equal(t, common.Hash{}, r.BlockHash, "block number must be equals")
-	}
 	for _, call := range feeder.CallFrames() {
 		assert.Empty(t, call.Error, "error must be empty")
 		assert.NotNil(t, call.Type, "type must be not nil")

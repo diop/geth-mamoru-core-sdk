@@ -2,8 +2,6 @@ package mamoru
 
 import (
 	"math/big"
-	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -13,24 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var (
-	sniffer            *mamoru_sniffer.Sniffer
-	SnifferConnectFunc = mamoru_sniffer.Connect
-	lock               = &sync.Mutex{}
-)
-
 const (
 	CtxBlockchain  = "blockchain"
 	CtxLightchain  = "lightchain"
 	CtxLightTxpool = "lighttxpool"
 	CtxTxpool      = "txpool"
 )
-
-func init() {
-	if IsSnifferEnable() {
-		Connect()
-	}
-}
 
 type Tracer struct {
 	feeder  Feeder
@@ -76,12 +62,17 @@ func (t *Tracer) FeedCalTraces(callFrames []*CallFrame, blockNumber uint64) {
 	)
 }
 
+func (t *Tracer) SetTxpoolCtx() {
+	t.builder.SetMempoolSource()
+}
+
 func (t *Tracer) Send(start time.Time, blockNumber *big.Int, blockHash common.Hash, snifferContext string) {
 	defer t.mu.Unlock()
 	t.mu.Lock()
 
 	if sniffer != nil {
-		sniffer.ObserveEvmData(t.builder.Finish(blockNumber.String(), blockHash.String()))
+		t.builder.SetBlockData(blockNumber.String(), blockHash.String())
+		sniffer.ObserveEvmData(t.builder.Finish())
 	}
 	logCtx := []interface{}{
 		"elapsed", common.PrettyDuration(time.Since(start)),
@@ -90,29 +81,4 @@ func (t *Tracer) Send(start time.Time, blockNumber *big.Int, blockHash common.Ha
 		"ctx", snifferContext,
 	}
 	log.Info("Mamoru Sniffer finish", logCtx...)
-}
-
-func IsSnifferEnable() bool {
-	isEnable, ok := os.LookupEnv("MAMORU_SNIFFER_ENABLE")
-
-	return ok && isEnable == "true"
-}
-
-func Connect() bool {
-	if sniffer != nil {
-		return true
-	}
-	lock.Lock()
-	defer lock.Unlock()
-	var err error
-	if sniffer == nil {
-		sniffer, err = SnifferConnectFunc()
-		if err != nil {
-			erst := strings.Replace(err.Error(), "\t", "", -1)
-			erst = strings.Replace(erst, "\n", "", -1)
-			log.Error("Mamoru Sniffer connect", "err", erst)
-			return false
-		}
-	}
-	return true
 }
