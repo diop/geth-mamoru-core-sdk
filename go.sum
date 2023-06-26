@@ -10,6 +10,8 @@ github.com/Mamoru-Foundation/mamoru-sniffer-go v0.4.0 h1:xeUx+zm5NvXE7lVlApFxpq3
 github.com/Mamoru-Foundation/mamoru-sniffer-go v0.4.0/go.mod h1:hnmSj2y/1Ddi4I5tyXVyMPIHslvfNZARuLpbVKwr32s=
 github.com/Mamoru-Foundation/mamoru-sniffer-go v0.5.0 h1:IgL6g85R9v0SECsIWJMv28MzRRVY/lqQzrq54QR0TaA=
 github.com/Mamoru-Foundation/mamoru-sniffer-go v0.5.0/go.mod h1:hnmSj2y/1Ddi4I5tyXVyMPIHslvfNZARuLpbVKwr32s=
+github.com/Mamoru-Foundation/mamoru-sniffer-go v0.5.1 h1:51Kda2A3PNUH7KYQ3SA9OEUBKlJj40rODiVh0VR3d74=
+github.com/Mamoru-Foundation/mamoru-sniffer-go v0.5.1/go.mod h1:hnmSj2y/1Ddi4I5tyXVyMPIHslvfNZARuLpbVKwr32s=
 github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398/go.mod h1:a1uqRtAwp2Xwc6WNPJEufxJ7fx3npB4UV/JOLmbu5I0=
 github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 h1:fLjPD/aNc3UIOA6tDi6QXUemppXK3P9BI7mr2hd6gx8=
 github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
