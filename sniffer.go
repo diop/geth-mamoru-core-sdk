@@ -68,6 +68,10 @@ func (s *Sniffer) checkSynced() bool {
 
 func (s *Sniffer) isSnifferEnable() bool {
 	val, ok := os.LookupEnv("MAMORU_SNIFFER_ENABLE")
+	if !ok {
+		return false
+	}
+
 	isEnable, err := strconv.ParseBool(val)
 	if err != nil {
 		log.Error("Mamoru Sniffer env parse error", "err", err)
