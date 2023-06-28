@@ -40,13 +40,13 @@ func (s *Sniffer) SetDownloader(downloader statusProgress) {
 }
 
 func (s *Sniffer) CheckRequirements() bool {
-	return s.isSnifferEnable() && s.connect() //&& s.checkSynced()
+	return s.isSnifferEnable() && s.connect() && s.checkSynced()
 }
 
 func (s *Sniffer) checkSynced() bool {
+	//if status is nil, we assume that node is synced
 	if s.status == nil {
-		log.Info("Mamoru Sniffer status", "status", "nil")
-		return false
+		return true
 	}
 
 	progress := s.status.Progress()
