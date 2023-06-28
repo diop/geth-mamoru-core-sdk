@@ -40,7 +40,7 @@ func (s *Sniffer) SetDownloader(downloader statusProgress) {
 }
 
 func (s *Sniffer) CheckRequirements() bool {
-	return s.isSnifferEnable() && s.connect() && s.checkSynced()
+	return s.isSnifferEnable() && s.connect() //&& s.checkSynced()
 }
 
 func (s *Sniffer) checkSynced() bool {
