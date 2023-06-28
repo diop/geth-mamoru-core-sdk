@@ -24,6 +24,7 @@ func (s *StatusProgressMock) Progress() ethereum.SyncProgress {
 }
 
 func TestSniffer_CheckRequirements(t *testing.T) {
+	delta := 5
 	tests := []struct {
 		name   string
 		status statusProgress
@@ -49,11 +50,17 @@ func TestSniffer_CheckRequirements(t *testing.T) {
 			status: CreateProgress(20, 10),
 			want:   true,
 		},
+		{
+			name:   "TRUE - currentBlock == highestBlock - delta",
+			status: CreateProgress(5, 10),
+			want:   true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Sniffer{
 				status: tt.status,
+				delta:  int64(delta),
 			}
 			if got := s.checkSynced(); got != tt.want {
 				t.Errorf("CheckRequirements() = %v, want %v", got, tt.want)
