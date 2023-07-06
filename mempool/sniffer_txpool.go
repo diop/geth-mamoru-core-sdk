@@ -155,14 +155,14 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 	stateDb = stateDb.Copy()
 
 	for index, tx := range txs {
-		calltracer, err := mamoru.NewCallTracer(false)
+		calltracer, err := mamoru.NewCallTracer(true)
 		if err != nil {
 			log.Error("Mamoru Call tracer", "err", err, "ctx", mamoru.CtxTxpool)
 		}
 
 		chCtx := core.ChainContext(bc.chain)
 		author, _ := types.LatestSigner(bc.chainConfig).Sender(tx)
-		gasPool := new(core.GasPool).AddGas(tx.Gas())
+		gasPool := new(core.GasPool).AddGas(header.GasLimit)
 
 		var gasUsed = new(uint64)
 		*gasUsed = header.GasUsed
@@ -172,9 +172,11 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 		if err != nil {
 			log.Error("types.Sender", "err", err, "number", header.Number.Uint64(), "ctx", mamoru.CtxTxpool)
 		}
+
 		if tx.Nonce() > stateDb.GetNonce(from) {
 			stateDb.SetNonce(from, tx.Nonce())
 		}
+
 		log.Info("ApplyTransaction", "tx.hash", tx.Hash().String(), "tx.nonce", tx.Nonce(),
 			"stNonce", stateDb.GetNonce(from), "number", header.Number.Uint64(), "ctx", mamoru.CtxTxpool)
 
