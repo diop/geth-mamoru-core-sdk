@@ -64,7 +64,7 @@ func TraceBlock(ctx context.Context,
 	}
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer  = types.MakeSigner(config.chainConfig, block.Number())
+		signer  = types.MakeSigner(config.chainConfig, block.Number(), block.Time())
 		txs     = block.Transactions()
 		results = make([]*TxTraceResult, len(txs))
 		stateDB = config.stateDB
@@ -171,7 +171,7 @@ func traceTx(ctx context.Context,
 	defer cancel()
 
 	// Run the transaction with tracing enabled.
-	vmenv := vm.NewEVM(vmctx, txContext, statedb, chainConfig, vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
+	vmenv := vm.NewEVM(vmctx, txContext, statedb, chainConfig, vm.Config{Tracer: tracer, NoBaseFee: true})
 
 	if posa, ok := engine.(PoSA); ok && message.From == vmctx.Coinbase &&
 		posa.IsSystemContract(message.To) && message.GasPrice.Cmp(big.NewInt(0)) == 0 {

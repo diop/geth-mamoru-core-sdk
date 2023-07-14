@@ -9,7 +9,7 @@ import (
 
 type Feeder interface {
 	FeedBlock(*types.Block) mamoru_sniffer.Block
-	FeedTransactions(blockNumber *big.Int, txs types.Transactions, receipts types.Receipts) []mamoru_sniffer.Transaction
+	FeedTransactions(blockNumber *big.Int, blockTime uint64, txs types.Transactions, receipts types.Receipts) []mamoru_sniffer.Transaction
 	FeedEvents(types.Receipts) []mamoru_sniffer.Event
 	FeedCallTraces([]*CallFrame, uint64) []mamoru_sniffer.CallTrace
 }

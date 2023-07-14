@@ -38,11 +38,11 @@ func (t *Tracer) FeedBlock(block *types.Block) {
 	)
 }
 
-func (t *Tracer) FeedTransactions(blockNumber *big.Int, txs types.Transactions, receipts types.Receipts) {
+func (t *Tracer) FeedTransactions(blockNumber *big.Int, blockTime uint64, txs types.Transactions, receipts types.Receipts) {
 	defer t.mu.Unlock()
 	t.mu.Lock()
 	t.builder.AppendTxs(
-		t.feeder.FeedTransactions(blockNumber, txs, receipts),
+		t.feeder.FeedTransactions(blockNumber, blockTime, txs, receipts),
 	)
 }
 

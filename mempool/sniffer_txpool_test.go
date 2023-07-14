@@ -124,7 +124,7 @@ func (f *testFeeder) FeedBlock(block *types.Block) mamoru_sniffer.Block {
 	return mamoru_sniffer.Block{}
 }
 
-func (f *testFeeder) FeedTransactions(_ *big.Int, txs types.Transactions, _ types.Receipts) []mamoru_sniffer.Transaction {
+func (f *testFeeder) FeedTransactions(_ *big.Int, _ uint64, txs types.Transactions, _ types.Receipts) []mamoru_sniffer.Transaction {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	f.txs = append(f.txs, txs...)

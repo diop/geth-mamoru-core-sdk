@@ -181,7 +181,7 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 			"stNonce", stateDb.GetNonce(from), "number", header.Number.Uint64(), "ctx", mamoru.CtxTxpool)
 
 		receipt, err := core.ApplyTransaction(bc.chainConfig, chCtx, &author, gasPool, stateDb, header, tx,
-			gasUsed, vm.Config{Debug: true, Tracer: calltracer, NoBaseFee: true})
+			gasUsed, vm.Config{Tracer: calltracer, NoBaseFee: true})
 		if err != nil {
 			log.Error("Mamoru Apply Transaction", "err", err, "number", header.Number.Uint64(),
 				"tx.hash", tx.Hash().String(), "ctx", mamoru.CtxTxpool)
@@ -202,8 +202,8 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 		tracer.FeedCalTraces(callFrames, header.Number.Uint64())
 	}
 
-	//tracer.FeedBlock(block)
-	tracer.FeedTransactions(header.Number, txs, receipts)
+	//tracer.FeedBlock(header)
+	tracer.FeedTransactions(header.Number, header.Time, txs, receipts)
 	tracer.FeedEvents(receipts)
 	tracer.Send(startTime, header.Number, header.Hash(), mamoru.CtxTxpool)
 }

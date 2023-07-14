@@ -140,7 +140,7 @@ func (bc *LightSnifferBackend) processHead(ctx context.Context, head *types.Head
 		return
 	}
 
-	tracer.FeedTransactions(newBlock.Number(), newBlock.Transactions(), receipts)
+	tracer.FeedTransactions(newBlock.Number(), newBlock.Time(), newBlock.Transactions(), receipts)
 	tracer.FeedEvents(receipts)
 
 	// finish tracer context

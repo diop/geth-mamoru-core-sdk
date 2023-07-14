@@ -1,6 +1,6 @@
 # geth-mamoru-core-sdk
 
-This implementation of the geth-mamoru-core-sdk requires the use of `go-ethereum` version > `1.11.0`. 
+This implementation of the geth-mamoru-core-sdk requires the use of `go-ethereum` version > `1.12.0`. 
 
 ## Usage
 Install the package in an Ethereum-based project
@@ -71,7 +71,7 @@ Insert this code to end of function `InsertHeaderChain(chain []*types.Header, ch
     
     tracer := mamoru.NewTracer(mamoru.NewFeed(lc.Config()))
     tracer.FeedBlock(block)
-    tracer.FeedTransactions(block.Number(), block.Transactions(), receipts)
+    tracer.FeedTransactions(block.Number(), block.Time(), block.Transactions(), receipts)
     tracer.FeedEvents(receipts)
     
     //Launch EVM and Collect Call Trace data
@@ -140,7 +140,6 @@ Enable debug mode and insert tracer instance to function `func NewBlockChain()`
             return nil, err
         }
         bc.vmConfig.Tracer = tracer
-        bc.vmConfig.Debug = true
     }
 //////////////////////////////////////////////////////////////
     bc.hc, err = NewHeaderChain(db, chainConfig, engine, bc.insertStopped)
@@ -158,7 +157,7 @@ Insert the main tracer code at the end of the function `func (bc *BlockChain) wr
     log.Info("Mamoru Sniffer start", "number", block.NumberU64(), "ctx", mamoru.CtxBlockchain)
     tracer := mamoru.NewTracer(mamoru.NewFeed(bc.chainConfig))
     tracer.FeedBlock(block)
-    tracer.FeedTransactions(block.Number(), block.Transactions(), receipts)
+    tracer.FeedTransactions(block.Number(), block.Time(), block.Transactions(), receipts)
     tracer.FeedEvents(receipts)
     // Collect Call Trace data  from EVM
     if callTracer, ok := bc.GetVMConfig().Tracer.(*mamoru.CallTracer); ok {
@@ -249,4 +248,4 @@ It's really easy, enjoy
 
 #### Current version Ethereum client:
 
-go-ethereum@v1.11.5
+go-ethereum@v1.12.0

@@ -38,8 +38,8 @@ func (f *EthFeed) FeedBlock(block *types.Block) mamoru_sniffer.Block {
 	return blockData
 }
 
-func (f *EthFeed) FeedTransactions(blockNumber *big.Int, txs types.Transactions, receipts types.Receipts) []mamoru_sniffer.Transaction {
-	signer := types.MakeSigner(f.chainConfig, blockNumber)
+func (f *EthFeed) FeedTransactions(blockNumber *big.Int, blockTime uint64, txs types.Transactions, receipts types.Receipts) []mamoru_sniffer.Transaction {
+	signer := types.MakeSigner(f.chainConfig, blockNumber, blockTime)
 	var transactions []mamoru_sniffer.Transaction
 
 	for i, tx := range txs {
