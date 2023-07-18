@@ -177,14 +177,18 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 			stateDb.SetNonce(from, tx.Nonce())
 		}
 
-		log.Info("Mamoru Apply Transaction", "tx.hash", tx.Hash().String(), "tx.nonce", tx.Nonce(),
-			"stNonce", stateDb.GetNonce(from), "number", header.Number.Uint64(), "ctx", mamoru.CtxTxpool)
+		txHashStr := tx.Hash().String()
+
+		log.Info("Mamoru Apply Transaction", "number", header.Number.Uint64(), "tx.hash", txHashStr,
+			"tx.nonce", tx.Nonce(), "stNonce", stateDb.GetNonce(from), "ctx", mamoru.CtxTxpool)
+		log.Info("Mamoru Gas", "number", header.Number.Uint64(), "tx.hash", txHashStr,
+			"gas_used", header.GasUsed, "gas_pool", gasPool.Gas(), "ctx", mamoru.CtxTxpool)
 
 		receipt, err := core.ApplyTransaction(bc.chainConfig, chCtx, &author, gasPool, stateDb, header, tx,
 			gasUsed, vm.Config{Tracer: calltracer, NoBaseFee: true})
 		if err != nil {
 			log.Error("Mamoru Apply Transaction", "err", err, "number", header.Number.Uint64(),
-				"tx.hash", tx.Hash().String(), "ctx", mamoru.CtxTxpool)
+				"tx.hash", txHashStr, "ctx", mamoru.CtxTxpool)
 			break
 		}
 
