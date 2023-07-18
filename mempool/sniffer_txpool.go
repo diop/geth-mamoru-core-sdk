@@ -155,7 +155,7 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 	stateDb = stateDb.Copy()
 
 	for index, tx := range txs {
-		calltracer, err := mamoru.NewCallTracer(true)
+		calltracer, err := mamoru.NewCallTracer(false)
 		if err != nil {
 			log.Error("Mamoru Call tracer", "err", err, "ctx", mamoru.CtxTxpool)
 		}
@@ -177,7 +177,7 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 			stateDb.SetNonce(from, tx.Nonce())
 		}
 
-		log.Info("ApplyTransaction", "tx.hash", tx.Hash().String(), "tx.nonce", tx.Nonce(),
+		log.Info("Mamoru Apply Transaction", "tx.hash", tx.Hash().String(), "tx.nonce", tx.Nonce(),
 			"stNonce", stateDb.GetNonce(from), "number", header.Number.Uint64(), "ctx", mamoru.CtxTxpool)
 
 		receipt, err := core.ApplyTransaction(bc.chainConfig, chCtx, &author, gasPool, stateDb, header, tx,
@@ -200,6 +200,8 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 		}
 
 		tracer.FeedCalTraces(callFrames, header.Number.Uint64())
+		log.Info("Mamoru finish collected", "number", header.Number.Uint64(), "txs", txs.Len(),
+			"receipts", receipts.Len(), "callFrames", len(callFrames), "ctx", mamoru.CtxTxpool)
 	}
 
 	//tracer.FeedBlock(header)
