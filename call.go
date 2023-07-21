@@ -130,6 +130,7 @@ func (t *CallTracer) TakeResult() ([]*CallFrame, error) {
 	}
 	t.callstack = nil
 	atomic.StoreUint32(&t.interrupt, 0)
+	t.reason = nil
 
 	return frames, t.reason
 }
