@@ -203,7 +203,6 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 			break
 		}
 
-		tracer.FeedCalTraces(callFrames, header.Number.Uint64())
 		var bytesLength int
 		for i := 0; i < len(callFrames); i++ {
 			bytesLength += len(callFrames[i].Input)
@@ -211,6 +210,7 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 
 		log.Info("Mamoru finish collected", "number", header.Number.Uint64(), "txs", txs.Len(),
 			"receipts", receipts.Len(), "callFrames", len(callFrames), "callFrames.input.len", bytesLength, "ctx", mamoru.CtxTxpool)
+		tracer.FeedCalTraces(callFrames, header.Number.Uint64())
 	}
 
 	//tracer.FeedBlock(header)
