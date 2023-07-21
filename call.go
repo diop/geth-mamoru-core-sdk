@@ -128,7 +128,8 @@ func (t *CallTracer) TakeResult() ([]*CallFrame, error) {
 		rcall := call
 		frames = append(frames, &rcall)
 	}
-	t.callstack = nil
+
+	t.callstack = []CallFrame{{}}
 	atomic.StoreUint32(&t.interrupt, 0)
 	t.reason = nil
 
