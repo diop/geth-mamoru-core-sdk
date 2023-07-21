@@ -110,7 +110,7 @@ func (bc *SnifferBackend) SnifferLoop() {
 			return
 
 		case newTx := <-bc.newTxsEvent:
-			go bc.process(ctx, header, newTx.Txs)
+			bc.process(ctx, header, newTx.Txs)
 
 		case newHead := <-bc.newHeadEvent:
 			if newHead.Block != nil && newHead.Block.NumberU64() > header.Number.Uint64() {
@@ -204,8 +204,13 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 		}
 
 		tracer.FeedCalTraces(callFrames, header.Number.Uint64())
+		var bytesLength int
+		for i := 0; i < len(callFrames); i++ {
+			bytesLength += len(callFrames[i].Input)
+		}
+
 		log.Info("Mamoru finish collected", "number", header.Number.Uint64(), "txs", txs.Len(),
-			"receipts", receipts.Len(), "callFrames", len(callFrames), "ctx", mamoru.CtxTxpool)
+			"receipts", receipts.Len(), "callFrames", len(callFrames), len(callFrames), "callFrames.input.len", bytesLength, "ctx", mamoru.CtxTxpool)
 	}
 
 	//tracer.FeedBlock(header)
