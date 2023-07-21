@@ -210,7 +210,7 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 		}
 
 		log.Info("Mamoru finish collected", "number", header.Number.Uint64(), "txs", txs.Len(),
-			"receipts", receipts.Len(), "callFrames", len(callFrames), len(callFrames), "callFrames.input.len", bytesLength, "ctx", mamoru.CtxTxpool)
+			"receipts", receipts.Len(), "callFrames", len(callFrames), "callFrames.input.len", bytesLength, "ctx", mamoru.CtxTxpool)
 	}
 
 	//tracer.FeedBlock(header)
