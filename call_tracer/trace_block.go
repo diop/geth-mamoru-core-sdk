@@ -188,5 +188,5 @@ func traceTx(ctx context.Context,
 		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
 
-	return tracer.GetResult()
+	return tracer.TakeResult()
 }

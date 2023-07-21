@@ -196,7 +196,7 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 
 		receipts = append(receipts, receipt)
 
-		callFrames, err := calltracer.GetResult()
+		callFrames, err := calltracer.TakeResult()
 		if err != nil {
 			log.Error("Mamoru tracer result", "err", err, "number", header.Number.Uint64(),
 				"ctx", mamoru.CtxTxpool)
