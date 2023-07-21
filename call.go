@@ -128,6 +128,7 @@ func (t *CallTracer) GetResult() ([]*CallFrame, error) {
 		rcall := call
 		frames = append(frames, &rcall)
 	}
+	t.callstack = nil
 
 	return frames, t.reason
 }
