@@ -155,10 +155,7 @@ func (bc *SnifferBackend) process(ctx context.Context, header *types.Header, txs
 	stateDb = stateDb.Copy()
 
 	for index, tx := range txs {
-		calltracer, err := mamoru.NewCallTracer(false)
-		if err != nil {
-			log.Error("Mamoru Call tracer", "err", err, "ctx", mamoru.CtxTxpool)
-		}
+		calltracer := mamoru.NewCallTracer(false)
 
 		chCtx := core.ChainContext(bc.chain)
 		author, _ := types.LatestSigner(bc.chainConfig).Sender(tx)

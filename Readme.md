@@ -135,10 +135,7 @@ Enable debug mode and insert tracer instance to function `func NewBlockChain()`
 //////////////////////////////////////////////////////////////
     // Enable Debug mod and Set Mamoru Tracer
     if bc.Sniffer.CheckRequirements() {
-        tracer, err := mamoru.NewCallTracer(false)
-        if err != nil {
-            return nil, err
-        }
+        tracer := mamoru.NewCallTracer(false)
         bc.vmConfig.Tracer = tracer
     }
 //////////////////////////////////////////////////////////////

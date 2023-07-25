@@ -156,10 +156,7 @@ func traceTx(ctx context.Context,
 		txContext = core.NewEVMTxContext(message)
 	)
 	// Creating CallTracer
-	tracer, err := mamoru.NewCallTracer(true)
-	if err != nil {
-		return nil, err
-	}
+	tracer := mamoru.NewCallTracer(true)
 
 	deadlineCtx, cancel := context.WithTimeout(ctx, timeout)
 	go func() {

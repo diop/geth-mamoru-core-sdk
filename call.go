@@ -38,12 +38,12 @@ var _ vm.EVMLogger = &CallTracer{}
 
 // NewCallTracer returns a native go tracer which tracks
 // call frames of a tx, and implements vm.EVMLogger.
-func NewCallTracer(OnlyTopCall bool) (*CallTracer, error) {
+func NewCallTracer(OnlyTopCall bool) *CallTracer {
 	// First callframe contains tx context info
 	// and is populated on start and end.
 	return &CallTracer{
 		callstack: []CallFrame{{}},
-		config:    CallTracerConfig{OnlyTopCall: OnlyTopCall}}, nil
+		config:    CallTracerConfig{OnlyTopCall: OnlyTopCall}}
 }
 
 // CaptureStart implements the EVMLogger interface to initialize the tracing operation.
